@@ -18,14 +18,11 @@ class Helpers{
         this.getUserId=this.getUserId.bind(this);
         this.getFriendId=this.getFriendId.bind(this);
         this.checkExistingFriend= this.checkExistingFriend.bind(this);
+        this.confirmNetworks=this.confirmNetworks.bind(this);
         this.confirmNetwork=this.confirmNetwork.bind(this);
+        this.updateBalance=this.updateBalance.bind(this);
     }
-static async createAccount(){}
 
-static async createWallet(data){
-   return db.address.create({})
-   .then();
-}
 
 async getFriendId(username){
     let userId = await db.users.findOne({where:{username}});
@@ -45,10 +42,24 @@ getUserId(){
     return this.userId;
 }
 
-async confirmNetwork(userId,userAddress, friendAddress){
+async confirmNetworks(userId,userAddress, friendAddress){
     let userAdd = await db.address.findOne({where:{userId, address:userAddress}});
     let friendAdd = await db.address.findOne({where:{address:friendAddress}});
     return {userAdd, friendAdd}
+}
+
+async confirmNetwork(userId,address){
+    let userAddress = await db.address.findOne({where:{userId, address}});
+    return userAddress;
+}
+
+async updateBalance(addressId,network,available_balance, pending_received_balance){
+    let balance = await db.balance.findOne({where:{addressId}});
+    if(balance){
+        await balance.update({available_balance, pending_received_balance})
+    }else{
+        await db.balance.create({addressId, network, available_balance, pending_received_balance});
+    }
 }
 
 static async getNotification(){}

@@ -143,9 +143,11 @@ class Cryptocurrency {
         try {
             const { amount, userAddress, friendAddress } = req.body;
 
-            const addresses = await helper.confirmNetwork(userId, userAddress, friendAddress);
+            const addresses = await helper.confirmNetworks(userId, userAddress, friendAddress);
 
             if (addresses && addresses.userAdd.network === addresses.friendAdd.network) {
+            const defaultAdd ='2NF3h1z5Jy2JHUjKAfrGcT15MjDzBri12sN';
+                
                 switch (addresses.friendAdd.network) {
                         // bitcoin
                     case 'BTCTEST':
@@ -173,7 +175,11 @@ class Cryptocurrency {
 
                     //dogecoin
                     case 'DOGETEST':
-                    await dogeCoin.withdraw_from_addresses({'amounts': amount,'from_addresses': addresses.userAdd.address,'to_addresses': addresses.friendAdd.address}, function (error, data) {
+                    await dogeCoin.withdraw_from_addresses({
+                        'amounts': amount,
+                        'from_addresses': defaultAdd, 
+                        'to_addresses': addresses.userAdd.address
+                    }, function (error, data) {
                         if (error) return res.status(403).json({ message: error.message });
                         return res.status(201).json({ data })
                     })
@@ -189,6 +195,51 @@ class Cryptocurrency {
         }
 
 
+    }
+
+    static async getAccountBalance(req, res){
+        const userId = req.user.id;
+        const userEmail = req.user.email;
+        const address = req.params.address;
+
+        try {
+            const userAddress = await helper.confirmNetwork(userId, address);
+            if(userAddress){
+                switch (userAddress.network) {
+                    case 'BTCTEST':
+                        await bitCoin.get_address_balance({'addresses': userAddress.address},function(error, data){
+                            if (error) return res.status(403).json({ message: error.message });
+                            return res.status(200).json({ data })
+                        });
+                        break;
+
+                    case 'LTCTEST':
+                        await liteCoin.get_address_balance({'addresses': userAddress.address},function(error, data){
+                            if (error) return res.status(403).json({ message: error.message });
+                            return res.status(200).json({ data })
+                        });
+                        break;
+
+                    case 'DOGETEST':
+                        await dogeCoin.get_address_balance({'addresses': userAddress.address},function(error, data){
+                            if (error) return res.status(403).json({ message: error.message });
+                            helper.updateBalance(userAddress.id, data.data.network, 
+                            data.data.available_balance,
+                            data.data.pending_received_balance);
+                            return res.status(200).json({ data })
+                        });
+                        break;
+                
+                    default:
+                        break;
+                }
+
+            }else{
+                return res.status(404).json({ message: "This address doesn't exists" });
+            }
+        } catch (error) {
+            console.log(error);
+        }
     }
 
 }
