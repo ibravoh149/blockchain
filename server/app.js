@@ -8,21 +8,31 @@ import bodyParser from 'body-parser';
 import validator from 'express-validator';
 import passport from 'passport';
 
+import cron from 'node-cron';
+
+import Helpers from './helpers';
+
 import api from './routes/index';
+
 
 const http = require('http');
 
 
 
-// import cron from 'node-cron';
 
 
 
 const expressValidator = require('express-validator');
 
-const app = express();
+const helper = new Helpers();
 
-const port = process.env.PORT || 3001;
+const app = express();
+const port = process.env.PORT || 9000;
+
+app.disable('x-powered-by');
+
+app.use(express.static(path.join(__dirname, '../dist/client/public')));
+
 
 app.set('port', port);
 
@@ -59,9 +69,9 @@ app.use('/', function(req, res){
     res.json({status:"success", message:"refer to the awesome API", data:{}})
 });
 
-// cron.schedule('10 * * * * *', () => {
-//     Job.searchDb();
-// });
+cron.schedule('* * * * * 7', () => {
+   helper.resetWeeklyLimit();
+});
 
 // cron.schedule('10 * * * * *', () => {
 //     Job.backUpDb();

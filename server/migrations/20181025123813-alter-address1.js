@@ -11,25 +11,17 @@ module.exports = {
     */
    return [
     queryInterface.addColumn(
-      'balances',
-      'network',
-      {
-        type: Sequelize.STRING,
-        allowNull: false
-      }
-    ),
-    queryInterface.addColumn(
-      'balances',
-      'available_balance',
+      'addresses',
+      'weekly_limit',
       {
         type: Sequelize.STRING,
         allowNull: false,
-        defaultValue:0
+        defaultValue:5
       }
     ),
     queryInterface.addColumn(
-      'balances',
-      'pending_received_balance',
+      'addresses',
+      'weekly_limit_count_up',
       {
         type: Sequelize.STRING,
         allowNull: false,
@@ -48,10 +40,7 @@ module.exports = {
       Example:
       return queryInterface.dropTable('users');
     */
-   return [
-    queryInterface.removeColumn('balances', 'network'),
-    queryInterface.removeColumn('balances', 'available_balance'),
-    queryInterface.removeColumn('balances', 'pending_received_balance')
-  ];
+    queryInterface.removeColumn('addresses', 'weekly_limit'),
+    queryInterface.removeColumn('addresses', 'weekly_limit_count_up')
   }
 };

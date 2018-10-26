@@ -4,6 +4,7 @@ import jwt from 'jsonwebtoken';
 // import { AccessControl } from 'accesscontrol'
 import * as dotenv from 'dotenv';
 import db from '../models';
+import crypto from 'crypto';
 
 import validate from '../middleware/validate';
 import grantsObject from '../middleware/roleaccess';
@@ -55,7 +56,7 @@ class Cryptocurrency {
                 switch (walletId) {
                     case 1:
                         // bitcoin wallet
-                        bitCoin.get_new_address({ 'label': userEmail }, function (error, data) {
+                       await bitCoin.get_new_address({ 'label': userEmail }, function (error, data) {
                             if (error) return res.status(409).json({ message: error.message });
 
                             const addressInfo = {
@@ -66,10 +67,9 @@ class Cryptocurrency {
                                 label: data.data.label
                             }
 
-                            let createdAddress = db.address.create(addressInfo)
-                            if (createdAddress) {
-                                return res.status(201).json({ message: `successfully setup ${createdAddress.network}` });
-                            }
+                            helper.setupAddressAndBalance(addressInfo);
+
+                            return res.status(201).json({ message: `successfully setup ${data.data.network} wallet` });
 
                         });
 
@@ -78,7 +78,7 @@ class Cryptocurrency {
 
                     case 2:
                         // litecoint wallet
-                        liteCoin.get_new_address({ 'label': userEmail }, function (error, data) {
+                        await liteCoin.get_new_address({ 'label': userEmail }, function (error, data) {
                             if (error) return res.status(409).json({ message: error.message });
 
                             const addressInfo = {
@@ -88,11 +88,10 @@ class Cryptocurrency {
                                 address: data.data.address,
                                 label: data.data.label
                             }
+                            helper.setupAddressAndBalance(addressInfo);
 
-                            let createdAddress = db.address.create(addressInfo)
-                            if (createdAddress) {
-                                return res.status(201).json({ message: `successfully setup ${data.data.network} wallet` });
-                            }
+                            return res.status(201).json({ message: `successfully setup ${data.data.network} wallet` });
+
 
                         });
 
@@ -100,7 +99,7 @@ class Cryptocurrency {
 
                     case 3:
                         // dogecoin wallet
-                        dogeCoin.get_new_address({ 'label': userEmail }, function (error, data) {
+                        await dogeCoin.get_new_address({ 'label': userEmail }, function (error, data) {
                             if (error) return res.status(409).json({ message: error.message });
 
                             const addressInfo = {
@@ -111,10 +110,9 @@ class Cryptocurrency {
                                 label: data.data.label
                             }
 
-                            let createdAddress = db.address.create(addressInfo)
-                            if (createdAddress) {
-                                return res.status(201).json({ message: `successfully setup ${data.data.network} wallet` });
-                            }
+                             helper.setupAddressAndBalance(addressInfo);
+                            
+                            return res.status(201).json({ message: `successfully setup ${data.data.network} wallet` });
 
                         });
                         break
@@ -143,48 +141,82 @@ class Cryptocurrency {
         try {
             const { amount, userAddress, friendAddress } = req.body;
 
+            const no_limit= await helper.checkWeeklyLimit(userId, userAddress)
+
+            if(no_limit){
+                return res.status(403).json({message:"weekly tranfer limit has been exceeded"});
+            }
+
             const addresses = await helper.confirmNetworks(userId, userAddress, friendAddress);
 
             if (addresses && addresses.userAdd.network === addresses.friendAdd.network) {
-            const defaultAdd ='2NF3h1z5Jy2JHUjKAfrGcT15MjDzBri12sN';
                 
-                switch (addresses.friendAdd.network) {
-                        // bitcoin
-                    case 'BTCTEST':
-                        await bitCoin.withdraw_from_addresses({
-                            'amounts': amount,
-                            'from_addresses': addresses.userAdd.address,
-                            'to_addresses': addresses.friendAdd.address
-                        }, function (error, data) {
-                            if (error) return res.status(403).json({ message: error.message });
-                            return res.status(201).json({ data })
-                        })
-                        break
+            //     switch (addresses.friendAdd.network) {
+            //             // bitcoin
+            //         case 'BTCTEST':
+            //             await bitCoin.withdraw_from_addresses({
+            //                 'amounts': amount,
+            //                 'from_addresses': addresses.userAdd.address,
+            //                 'to_addresses': addresses.friendAdd.address
+            //             }, function (error, data) {
+            //                 if (error) return res.status(403).json({ message: error.message });
+            //                 helper.updateWeeklyLimit(userId,  addresses.userAdd.address)
+            //                 return res.status(201).json({ data });
+            //             })
+            //             break
 
-                    //litecoint
-                    case 'LTCTEST':
-                        await liteCoin.withdraw_from_addresses({
-                            'amounts': amount,
-                            'from_addresses': addresses.userAdd.address,
-                            'to_addresses': addresses.friendAdd.address
-                        }, function (error, data) {
-                            if (error) return res.status(403).json({ message: error.message });
-                            return res.status(201).json({ data })
-                        })
-                        break
+            //         //litecoint
+            //         case 'LTCTEST':
+            //             await liteCoin.withdraw_from_addresses({
+            //                 'amounts': amount,
+            //                 'from_addresses': addresses.userAdd.address,
+            //                 'to_addresses': addresses.friendAdd.address
+            //             }, function (error, data) {
+            //                 if (error) return res.status(403).json({ message: error.message });
+            //                 helper.updateWeeklyLimit(userId,  addresses.userAdd.address)
+            //                 return res.status(201).json({ data })
+            //             })
+            //             break
 
-                    //dogecoin
-                    case 'DOGETEST':
-                    await dogeCoin.withdraw_from_addresses({
-                        'amounts': amount,
-                        'from_addresses': defaultAdd, 
-                        'to_addresses': addresses.userAdd.address
-                    }, function (error, data) {
-                        if (error) return res.status(403).json({ message: error.message });
-                        return res.status(201).json({ data })
-                    })
-                        break
+            //         //dogecoin
+            //         case 'DOGETEST':
+            //         await dogeCoin.withdraw_from_addresses({
+            //             'amounts': amount,
+            //             'from_addresses': addresses.userAdd.address, 
+            //             'to_addresses': addresses.friendAdd.address
+            //         }, function (error, data) {
+            //             if (error) return res.status(403).json({ message: error.message });
+            //             helper.updateWeeklyLimit(userId,  addresses.userAdd.address)
+            //             return res.status(201).json({ data })
+            //         })
+            //             break
+                // }
+
+                const sendFund = await helper.sendFund(addresses.userAdd.id,addresses.friendAdd.id,amount)
+
+                if(!sendFund){
+                    return res.status(403).json({message:"You don't have enough funds to transfer"})
                 }
+
+                await helper.updateWeeklyLimit(userId,  addresses.userAdd.address);
+                const ref = crypto.randomBytes(20).toString('hex');
+                const sentTransactionInfo = {
+                    addressId:addresses.userAdd.id,
+                    tx_ref:ref,
+                    status:'success',
+                    type:'sent'
+                }
+                const receievedTransactionInfo = {
+                    addressId:addresses.friendAdd.id,
+                    tx_ref:ref,
+                    status:'success',
+                    type:'received'
+                }
+                await db.transactions.create(sentTransactionInfo)
+                await db.transactions.create(receievedTransactionInfo)
+                await helper.sendMail(ref,userEmail);
+                return res.status(201).json({message:"transaction successfull"});
+
             }else{
                 return res.status(403).json({ message: "oops, you and the receiver \n must on thesame currency" });
             }
@@ -205,34 +237,47 @@ class Cryptocurrency {
         try {
             const userAddress = await helper.confirmNetwork(userId, address);
             if(userAddress){
-                switch (userAddress.network) {
-                    case 'BTCTEST':
-                        await bitCoin.get_address_balance({'addresses': userAddress.address},function(error, data){
-                            if (error) return res.status(403).json({ message: error.message });
-                            return res.status(200).json({ data })
-                        });
-                        break;
+               
+                // switch (userAddress.network) {
+                    // case 'BTCTEST':
+                    //     // await bitCoin.get_address_balance({'addresses': userAddress.address},function(error, data){
+                    //     //     if (error) return res.status(403).json({ message: error.message });
+                    //     //     helper.updateBalance(userAddress.id, data.data.network, 
+                    //     //     data.data.available_balance,
+                    //     //     data.data.pending_received_balance);
+                    //     //     return res.status(200).json({ data });
+                    //     // });
 
-                    case 'LTCTEST':
-                        await liteCoin.get_address_balance({'addresses': userAddress.address},function(error, data){
-                            if (error) return res.status(403).json({ message: error.message });
-                            return res.status(200).json({ data })
-                        });
-                        break;
+                    //      await db.balance.findOne({where:{address:userAddress.address}});
+                        
+                    //     break;
 
-                    case 'DOGETEST':
-                        await dogeCoin.get_address_balance({'addresses': userAddress.address},function(error, data){
-                            if (error) return res.status(403).json({ message: error.message });
-                            helper.updateBalance(userAddress.id, data.data.network, 
-                            data.data.available_balance,
-                            data.data.pending_received_balance);
-                            return res.status(200).json({ data })
-                        });
-                        break;
+                    // case 'LTCTEST':
+                    //     await liteCoin.get_address_balance({'addresses': userAddress.address},function(error, data){
+                    //         if (error) return res.status(403).json({ message: error.message });
+                    //         helper.updateBalance(userAddress.id, data.data.network, 
+                    //         data.data.available_balance,
+                    //         data.data.pending_received_balance);
+                    //         return res.status(200).json({ data })
+                    //     });
+                    //     break;
+
+                    // case 'DOGETEST':
+                    //     await dogeCoin.get_address_balance({'addresses': userAddress.address},function(error, data){
+                    //         if (error) return res.status(403).json({ message: error.message });
+                    //         helper.updateBalance(userAddress.id, data.data.network, 
+                    //         data.data.available_balance,
+                    //         data.data.pending_received_balance);
+                    //         return res.status(200).json({ data })
+                    //     });
+                    //     break;
                 
-                    default:
-                        break;
-                }
+                    // default:
+                    //     break;
+                // }
+
+                let data = await db.balance.findOne({where:{addressId:userAddress.id}});
+                return res.status(200).json({ data });
 
             }else{
                 return res.status(404).json({ message: "This address doesn't exists" });
@@ -242,6 +287,57 @@ class Cryptocurrency {
         }
     }
 
+    static async checkRecentTransaction(req, res){
+        const userId = req.user.id;
+        const userEmail = req.user.email;
+        const address = req.params.address;
+        const limit=  5
+
+        try {
+            const userAddress = await helper.confirmNetwork(userId, address);
+            if(userAddress){
+                // switch (userAddress.network) {
+                //     case 'BTCTEST':
+                //     await bitCoin.get_transactions({'type': type, 'addresses': userAddress.address},function(error, data){
+                //         if (error) return res.status(403).json({ message: error.message });
+                //         return res.status(200).json({ data:data.data });
+                //     });
+                //     break;
+                    
+                //     case 'LTCTEST':
+                //     await liteCoin.get_transactions({'type': type, 'addresses': userAddress.address},function(error, data){
+                //         if (error) return res.status(403).json({ message: error.message });
+                //         return res.status(200).json({ data:data.data });
+                //     });
+                //     break
+                //     case 'DOGETEST':
+                //     await dogeCoin.get_transactions({'type': type, 'addresses': userAddress.address},function(error, data){
+                //         if (error) return res.status(403).json({ message: error.message });
+                //         return res.status(200).json({ data:data.data });
+                //     });
+                //     break
+                //     default:
+                //         break;
+                // }
+
+                let data = await db.transactions.findAll({where:{addressId:userAddress.id},
+                    limit
+                });
+
+                if(data.length<1){
+                    return res.status(404).json({message:"No recent transaction"})
+                }
+
+                return res.status(200).json({data})
+                
+            }else{
+                return res.status(404).json({ message: "This address doesn't exists" });
+            }
+            
+        } catch (error) {
+            console.log(error)
+        }
+    }
 }
 
 export default Cryptocurrency

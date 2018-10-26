@@ -42,7 +42,12 @@ class User {
                 username, email, password: bcrypt.hashSync(password, salt),
             });
 
-            return res.status(201).json({user});
+            const token = jwt.sign({
+                sub: user.id,
+                email: user.email,
+            }, secretKey,{expiresIn:expireIn});
+
+            return res.status(201).json({user,token});
         }
 
        } catch (error) {
@@ -104,12 +109,13 @@ class User {
             if(friendId === null){
                 return res.status(404).json({message:"This user does not exists in the database"});
             }else if(friendId !== null && friendId === userId){
-                return res.status(401).json({message:"you cannot add yourself as a friend"});                  
+                return res.status(403).json({message:"you cannot add yourself as a friend"});                  
             }
             else{
                const existingFriend = await helper.checkExistingFriend(userId, friendId)
                 if(!existingFriend){
                     await db.friends.create({userId, friendId});
+                    // await db.friends.create({friendId, userId});
                     return res.status(201).json({message:`${username} has been added to your friends list`});                  
                 }
                 return res.status(409).json({message:"This person is already a friend"});                  
@@ -119,6 +125,60 @@ class User {
         } catch (error) {
             console.log(error);
         }
+    }
+
+    static async getFriends(req, res){
+        const userId= req.user.id;
+
+        try {
+            let friendIds = await db.friends.findAll({where:{userId},
+                attributes:['friendId']
+            });
+
+            if (friendIds.length>0){
+                let ids=[];
+
+                friendIds.map((friendId)=>{
+                    ids.push(friendId.friendId)
+                });
+
+
+                const friends  = await db.users.findAll({
+                    where:{id:[...ids]},
+                    include:[
+                        { model:db.userwallets, attributes:['id'], include:[{model:db.wallets, attributes:['name']}]},
+                        { model:db.address, as:'address', attributes:['network','address']}
+                    ]
+                });
+
+                // return console.log(friends);
+
+
+                return res.status(200).json({friends})
+            }
+            return res.status(404).json({message:"your friend list is empty"});
+        } catch (error) {
+            console.log(error);
+            
+        }
+    }
+
+    static async getMyProfile(req, res){
+        const id= req.user.id;
+
+        try {
+            let userInfo = await db.users.findOne({where:{id},
+                include:[
+                    { model:db.userwallets, attributes:['id'], include:[{model:db.wallets, attributes:['name']}]},
+                    { model:db.address, as:'address', attributes:['network','address','weekly_limit']}
+                ]
+            });
+            return res.status(200).json({userInfo});
+        } catch (error) {
+            console.log(error);
+            
+        }
+
     }
 }
 export default User;
