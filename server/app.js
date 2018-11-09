@@ -27,7 +27,7 @@ const expressValidator = require('express-validator');
 const helper = new Helpers();
 
 const app = express();
-const port = process.env.PORT || 9000;
+const port = process.env.PORT || 3001;
 
 app.disable('x-powered-by');
 

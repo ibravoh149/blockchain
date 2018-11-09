@@ -1,16 +1,16 @@
 'use strict';
 module.exports = (sequelize, DataTypes) => {
   const address = sequelize.define('address', {
-    userwalletId: {
-      type: DataTypes.INTEGER,
-      allowNull: false,
-      onDelete: "CASCADE",
-      references: {
-        model: "userwallets",
-        key: "id",
-        as: "userwalletId"
-      }
-    },
+    // userwalletId: {
+    //   type: DataTypes.INTEGER,
+    //   allowNull: false,
+    //   onDelete: "CASCADE",
+    //   references: {
+    //     model: "userwallets",
+    //     key: "id",
+    //     as: "userwalletId"
+    //   }
+    // },
     userId: {
       type: DataTypes.INTEGER,
       allowNull: false,
@@ -23,24 +23,13 @@ module.exports = (sequelize, DataTypes) => {
     },
     network: DataTypes.STRING,
     address: DataTypes.STRING,
-    label: DataTypes.STRING,
-
-    weekly_limit:
-    {
-      type: DataTypes.STRING,
-      allowNull: false,
-      defaultValue: 5
-    },
-    weekly_limit_count_up: {
-      type: DataTypes.STRING,
-      allowNull: false,
-      defaultValue: 0
-    },
-
+    privateKey:DataTypes.STRING,
+    keyPair:DataTypes.STRING.BINARY ,
+    daily_limit:DataTypes.INTEGER
   }, {});
   address.associate = function (models) {
     // associations can be defined here
-    address.belongsTo(models.userwallets, { foreignKey: "userwalletId" });
+    // address.belongsTo(models.userwallets, { foreignKey: "userwalletId" });
     address.belongsTo(models.users, { foreignKey: "userId" });
     address.hasOne(models.balance, { foreignKey: "addressId", onDelete: 'cascade' });
     address.hasMany(models.transactions, { foreignKey: "addressId", onDelete: 'cascade' });

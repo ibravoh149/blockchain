@@ -2,14 +2,28 @@ import * as dotenv from 'dotenv';
 
 import db from './models';
 
-const block_io = require('block_io');
+
+import Bitcoin from './coins/Bitcoin';
+
+import Stellar from './coins/Stellar';
+import { SSL_OP_TLS_BLOCK_PADDING_BUG } from 'constants';
+import axios from 'axios';
+
+// const block_io = require('block_io');
 const nodemailer = require('nodemailer');
+const Client =require('coinbase').Client;
+
 
 dotenv.config();
 
-const version = 2;
+// const version = 2;
 
-let bitCoin = new block_io(process.env.BITCOIN_API_KEY, process.env.SECRET_PIN, version);
+// let bitCoin = new block_io(process.env.BITCOIN_API_KEY, process.env.SECRET_PIN, version);
+
+let client = new Client({'apiKey': process.env.COINBASE_API_KEY,
+'apiSecret': process.env.COINBASE_SECRET_KEY});
+
+
 
 const transporter = nodemailer.createTransport({
     host: "smtp.mailtrap.io",
@@ -36,8 +50,101 @@ class Helpers {
         this.sendFund= this.sendFund.bind(this);
         this.setupBalance=this.setupBalance.bind(this);
         this.setupAddressAndBalance=this.setupAddressAndBalance.bind(this);
+        this.getAccounts=this.getAccounts.bind(this);
+        this.setupAccount=this.setupAccount.bind(this)
     }
 
+    async setupAccount(userId){
+        let bit = new Bitcoin();
+        let bitCoin =bit.generateAccount(userId);
+
+        let stell = new Stellar();
+        let stellar =stell.generateAccount(userId);
+
+        try {
+
+        const bitInfo = {
+            userId:userId,
+            network:'BTC',
+            address:bitCoin.address,
+            privateKey:bitCoin.privateKey,
+            daily_limit:3000
+            // keyPair:bitCoin.keyPair
+
+        }
+
+        let createdBitcoinAcc=await db.address.create(bitInfo);
+
+        const stellInfo={
+            userId:userId,
+            network:'STL',
+            address:stellar.publicKey,
+            privateKey:stellar.privateKey,
+            // keyPair:stellar.KeyPair
+            daily_limit:200
+        }
+
+       let createdStellarAcc= await db.address.create(stellInfo);
+
+        if(createdBitcoinAcc && createdStellarAcc){
+            return true
+        }else{
+            return false
+        }
+
+        } catch (error) {
+            console.log(error)
+        }
+    }
+
+
+    async checkTransactionLimit(address, userId, amount){
+        let addressDetails = await db.address.findOne({where:{userId,address}})
+
+        if(addressDetails){
+            try {
+                let transactionInfo = db.transactions.findAll({where:{userId},
+                    order:[['createdAt', 'DESC']]
+                });
+
+                if(transactionInfo <1){
+                    return true
+                }else if(transactionInfo > 0){
+                    let recentTx = transactionInfo[0];
+                    let today = new Date().toISOString().split('T')[0];
+                    let recentTxDate = recentTx.createdAt.split('T')[0];
+                    if(today > recentTxDate){
+                        return true
+                    }else if(today == recentTxDate){
+                        let currentDate= new Date();
+                        let todayTxs = await db.transactions.findAll({where:{userId, 
+                            createdAt:currentDate}});
+                        let amountArray = [];
+
+                            todayTxs.forEach(tx => {
+                                amountArray.push(tx.transaction_amount)
+                            });
+
+                        let cummulative = amountArray.reduce((a,b)=>{
+                                return a + b;
+                        })
+
+                        if(cummulative < addressDetails.daily_limit){
+                            return true
+                        }else{
+                            return false
+                        }
+                    }
+                }
+
+            } catch (error) {
+                console.log(error)
+            }
+        }
+        return
+        
+    }
+      
 
     async getFriendId(username) {
         let userId = await db.users.findOne({ where: { username } });
@@ -144,23 +251,23 @@ class Helpers {
     }
 
 
-    async updateBalance(addressId, network, available_balance, pending_received_balance) {
+    async updateBalance(addressId, available_balance) {
         let balance = await db.balance.findOne({ where: { addressId } });
         if (balance) {
-            await balance.update({ available_balance, pending_received_balance })
+            await balance.update({ available_balance })
         } else {
-            await db.balance.create({ addressId, network, available_balance, pending_received_balance });
+            await db.balance.create({ addressId, available_balance });
         }
     }
 
 
-    async sendMail(tx_reference_number, email){
+    async sendMail(email){
 
         const mailOptions= {
             from: '"Blackbox" <www.blackbox.com>',
             to: email,
             subject: "Email Test",
-            text: `Transacton successful. Your transaction reference number is ${tx_reference_number}`
+            text: `Transacton successful.`
           };
 
           transporter.sendMail(mailOptions, (err, info) => {
@@ -172,7 +279,26 @@ class Helpers {
         
     }
 
-    static async programTransaction() { }
+
+    // coinbase implementations
+    getAccounts(){
+        // client.getAccount('b50c5b8f-abc5-56e8-9489-9b69de5f2e09', function(err, account) {
+        //     account.createAddress(null, function(err, address) {
+        //         console.log(address);
+        //       });
+        //   });
+
+
+        client.createAccount({}, function(err, account){
+            if(err)console.log(err)
+            console.log(account);
+        });
+        
+        
+        
+    }
+
+
 }
 
 export default Helpers

@@ -11,6 +11,18 @@ module.exports = {
       addressId: {
         type: Sequelize.INTEGER
       },
+      available_balance:
+      {
+        type: Sequelize.STRING,
+        allowNull: false,
+        defaultValue:0
+      },
+      pending_received_balance:
+      {
+        type: Sequelize.STRING,
+        allowNull: false,
+        defaultValue:0
+      },
       createdAt: {
         allowNull: false,
         type: Sequelize.DATE

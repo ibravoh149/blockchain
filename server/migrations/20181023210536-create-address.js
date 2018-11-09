@@ -8,16 +8,16 @@ module.exports = {
         primaryKey: true,
         type: Sequelize.INTEGER
       },
-      userwalletId:{
-        type:Sequelize.INTEGER,
-        allowNull:false,
-        onDelete:"CASCADE",
-         references:{
-           model:"userwallets",
-           key:"id",
-           as:"userwalletId"
-         }
-      },
+      // userwalletId:{
+      //   type:Sequelize.INTEGER,
+      //   allowNull:false,
+      //   onDelete:"CASCADE",
+      //    references:{
+      //      model:"userwallets",
+      //      key:"id",
+      //      as:"userwalletId"
+      //    }s
+      // },
       userId:{
        type:Sequelize.INTEGER,
        allowNull:false,
@@ -28,17 +28,26 @@ module.exports = {
           as:"userId"
         }
      },
+     
      network:Sequelize.STRING,
      address:Sequelize.STRING,
-     label:Sequelize.STRING,
-      createdAt: {
+     privateKey:Sequelize.STRING,
+    keyPair:Sequelize.STRING.BINARY,
+
+    daily_limit:
+     {
+       type: Sequelize.INTEGER,
+      
+     },
+       createdAt: {
         allowNull: false,
         type: Sequelize.DATE
       },
       updatedAt: {
         allowNull: false,
         type: Sequelize.DATE
-      }
+      },
+   
     });
   },
   down: (queryInterface, Sequelize) => {

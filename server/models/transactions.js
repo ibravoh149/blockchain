@@ -11,13 +11,24 @@ module.exports = (sequelize, DataTypes) => {
           as:"addressId"
         }
     },
-    tx_ref: DataTypes.STRING,
-    status: DataTypes.STRING,
+    userId:{
+      type:DataTypes.INTEGER,
+      allowNull:false,
+      onDelete:"CASCADE",
+        references:{
+          model:"users",
+          key:"id",
+          as:"userId"
+        }
+    },
+    transaction_amount:DataTypes.INTEGER,
     type:DataTypes.STRING
   }, {});
   transactions.associate = function(models) {
     // associations can be defined here
     transactions.belongsTo(models.address, {foreignKey:"addressId"});
+    transactions.belongsTo(models.users, {foreignKey:"userId"});
+    
   };
   return transactions;
 };

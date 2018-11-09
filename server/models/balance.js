@@ -11,7 +11,7 @@ module.exports = (sequelize, DataTypes) => {
           as:"addressId"
         }
     },
-    network:DataTypes.STRING,
+    // network:DataTypes.STRING,
     available_balance:DataTypes.STRING,
     pending_received_balance:DataTypes.STRING,
   }, {});

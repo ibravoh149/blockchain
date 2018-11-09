@@ -26,7 +26,7 @@ module.exports = {
 
         },
         {
-          name: 'DOGECOIN',
+          name: 'STELLAR',
           createdAt:new Date(),
           updatedAt:new Date()
 

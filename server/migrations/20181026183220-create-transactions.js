@@ -12,17 +12,21 @@ module.exports = {
         type:Sequelize.INTEGER,
         allowNull:false,
       },
-      tx_ref: {
-        type: Sequelize.STRING
+      userId:{
+        type:Sequelize.INTEGER,
+        allowNull:false,
+        onDelete:"CASCADE",
+          references:{
+            model:"users",
+            key:"id",
+            as:"userId"
+          }
       },
-      status: {
-        type: Sequelize.STRING
-      },
+      transaction_amount:Sequelize.INTEGER,
     type:
     {
       type:Sequelize.STRING
     },
-
       createdAt: {
         allowNull: false,
         type: Sequelize.DATE

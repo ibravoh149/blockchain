@@ -1,21 +1,27 @@
 'use strict'
 import bcrypt from 'bcrypt-nodejs';
 import jwt from 'jsonwebtoken';
+import crypto from 'crypto';
+
 // import { AccessControl } from 'accesscontrol'
 import * as dotenv from 'dotenv';
 import db from '../models';
 import validate from '../middleware/validate';
+
+import Bitcoin from '../coins/Bitcoin';
+
+import Stellar from '../coins/Stellar';
+
 import Helpers from '../helpers';
 
-import grantsObject from '../middleware/roleaccess';
+// import grantsObject from '../middleware/roleaccess';
 
 const nodemailer = require('nodemailer');
 
-import crypto from 'crypto';
 
 const secretKey = process.env.JWT_SECRET;
 const expireIn = Number(process.env.JWT_EXP);
-
+const helper = new Helpers();
 
 class User {
    static async createAccount(req, res){
@@ -41,6 +47,13 @@ class User {
             let user = await db.users.create({
                 username, email, password: bcrypt.hashSync(password, salt),
             });
+
+            
+           let account = await helper.setupAccount(user.id);
+
+           if(!account){
+                return res.status(502).json({message:'Bad request'});
+           }
 
             const token = jwt.sign({
                 sub: user.id,

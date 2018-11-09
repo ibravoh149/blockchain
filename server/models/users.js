@@ -14,6 +14,7 @@ module.exports = (sequelize, DataTypes) => {
     users.hasMany(models.friends, {foreignKey:'userId', onDelete:'CASCADE', as:'friends'});
     users.hasMany(models.userwallets, {foreignKey:'userId', onDelete:'cascade'});
     users.hasMany(models.address,{foreignKey:'userId', onDelete:'CASCADE', as :'address'});
+    users.hasMany(models.transactions,{foreignKey:'userId', onDelete:'CASCADE'});
 
   };
   return users;

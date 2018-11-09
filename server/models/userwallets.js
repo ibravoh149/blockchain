@@ -25,7 +25,7 @@ module.exports = (sequelize, DataTypes) => {
   userwallets.associate = function(models) {
     // associations can be defined here
     userwallets.belongsTo(models.wallets,{foreignKey:'walletId'});
-    userwallets.hasMany(models.address, {foreignKey:'userwalletId', onDelete:"cascade"});
+    // userwallets.hasMany(models.address, {foreignKey:'userwalletId', onDelete:"cascade"});
     userwallets.belongsTo(models.users,{foreignKey:'userId'});
   };
   return userwallets;
